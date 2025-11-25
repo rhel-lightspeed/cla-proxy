@@ -1,0 +1,14 @@
+[project]
+name = "cla-proxy-python"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+dependencies = [
+    # tomli is only required below 3.11 as it is native after that version.
+    'tomli; python_version<"3.11"',
+    "httpx>=0.28.1",
+    "pydantic>=2.12.4",
+    "fastapi[standard]>=0.121.2",
+    "pydantic-settings>=2.11.0",
+]
+requires-python = ">=3.9,<4.0" # RHEL 9 and 10

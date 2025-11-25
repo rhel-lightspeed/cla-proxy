@@ -1,0 +1,69 @@
+minimum_pre_commit_version: "3.8.0"
+
+ci:
+  skip:
+    # rpm library is not available in the CI
+    - rpmlint
+
+  # run autopdate monthly to reduce PR noise
+  autoupdate_schedule: 'monthly'
+
+repos:
+  - repo: https://github.com/rpm-software-management/rpmlint
+    rev: 2.8.0
+    hooks:
+      - id: rpmlint
+        files: \.spec
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.14.3
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+
+      # Show the diff of what would change.
+      - id: ruff-format
+        name: ruff-format-diff
+        args: [--diff]
+
+      # Run the formatter.
+      - id: ruff-format
+
+  - repo: "https://github.com/pre-commit/pre-commit-hooks"
+    rev: "v6.0.0"
+    hooks:
+      - id: "end-of-file-fixer"
+      - id: "trailing-whitespace"
+      - id: "check-toml"
+      - id: "check-yaml"
+      - id: "check-merge-conflict"
+        exclude: docs/
+
+  - repo: https://github.com/packit/pre-commit-hooks
+    rev: v1.3.0
+    hooks:
+      - id: check-rebase
+        args:
+          - https://github.com/rhel-lightspeed/cla-proxy.git
+        stages: [manual, pre-push]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2  # Use the sha / tag you want to point at
+    hooks:
+    - id: mypy
+      additional_dependencies:
+        - pytest
+        - setuptools
+        - responses
+        - setuptools
+        - fastapi
+        - pydantic
+        - pydantic-settings
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
+        stages: [manual, pre-push]
