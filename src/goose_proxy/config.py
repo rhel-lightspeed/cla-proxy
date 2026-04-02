@@ -15,7 +15,7 @@ from pydantic_settings import (
 
 #: Define the config file path.
 CONFIG_FILE_DEFINITION: tuple[str, str] = (
-    "cla-proxy",
+    "goose-proxy",
     "config.toml",
 )
 
