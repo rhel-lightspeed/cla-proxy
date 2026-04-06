@@ -31,9 +31,6 @@ goose-proxy = "goose_proxy.app:serve"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-
 [dependency-groups]
 dev = [
     "ipdb",
@@ -53,3 +50,33 @@ test = [
     "pytest-mock",
     "pytest>=8.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/rules/
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # import order (like isort)
+    "C90",  # cyclomatic complexity
+    "RUF100",  # unused-noqa
+    "T20",  # flake8-print
+]
+mccabe.max-complexity = 12
+
+ignore = [
+    "E501",  # Ignore line length
+]
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+force-single-line = true
+lines-after-imports = 2
+lines-between-types = 1
+order-by-type = false
