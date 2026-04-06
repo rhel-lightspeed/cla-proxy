@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from goose_proxy.models.responses import Response
 from goose_proxy.models.responses import ResponseCompletedEvent
 from goose_proxy.models.responses import ResponseCreatedEvent
@@ -62,7 +60,6 @@ async def _collect_chunks(events, model="rhel-lightspeed/vertex"):
 
 
 class TestTextStreaming:
-    @pytest.mark.asyncio
     async def test_initial_role_chunk(self):
         events = [
             ResponseCreatedEvent(
@@ -75,7 +72,6 @@ class TestTextStreaming:
         data = _parse_sse_line(chunks[0])
         assert data["choices"][0]["delta"] == {"role": "assistant"}
 
-    @pytest.mark.asyncio
     async def test_text_delta_chunks(self):
         events = [
             ResponseCreatedEvent(
@@ -96,7 +92,6 @@ class TestTextStreaming:
         data = _parse_sse_line(chunks[1])
         assert data["choices"][0]["delta"] == {"content": "Hello"}
 
-    @pytest.mark.asyncio
     async def test_multiple_text_deltas(self):
         events = [
             ResponseCreatedEvent(
@@ -126,7 +121,6 @@ class TestTextStreaming:
         assert _parse_sse_line(chunks[1])["choices"][0]["delta"]["content"] == "Hel"
         assert _parse_sse_line(chunks[2])["choices"][0]["delta"]["content"] == "lo!"
 
-    @pytest.mark.asyncio
     async def test_empty_text_delta(self):
         events = [
             ResponseCreatedEvent(
@@ -152,7 +146,6 @@ class TestTextStreaming:
 
 
 class TestToolCallStreaming:
-    @pytest.mark.asyncio
     async def test_function_call_added(self):
         fc = ResponseFunctionToolCall(
             arguments="",
@@ -184,7 +177,6 @@ class TestToolCallStreaming:
         assert tc["function"]["arguments"] == ""
         assert tc["index"] == 0
 
-    @pytest.mark.asyncio
     async def test_function_call_arguments_delta(self):
         fc = ResponseFunctionToolCall(
             arguments="",
@@ -220,7 +212,6 @@ class TestToolCallStreaming:
         assert tc["function"]["arguments"] == '{"loc'
         assert tc["index"] == 0
 
-    @pytest.mark.asyncio
     async def test_multiple_function_calls_indexed(self):
         fc1 = ResponseFunctionToolCall(
             arguments="",
@@ -263,7 +254,6 @@ class TestToolCallStreaming:
         assert tc1["index"] == 0
         assert tc2["index"] == 1
 
-    @pytest.mark.asyncio
     async def test_function_call_then_text(self):
         """Mixed tool and text streaming in sequence."""
         fc = ResponseFunctionToolCall(
@@ -321,7 +311,6 @@ class TestToolCallStreaming:
 
 
 class TestStreamLifecycle:
-    @pytest.mark.asyncio
     async def test_stream_starts_with_role(self):
         events = [
             ResponseCreatedEvent(
@@ -334,7 +323,6 @@ class TestStreamLifecycle:
         data = _parse_sse_line(chunks[0])
         assert data["choices"][0]["delta"]["role"] == "assistant"
 
-    @pytest.mark.asyncio
     async def test_stream_ends_with_done(self):
         events = [
             ResponseCreatedEvent(
@@ -351,7 +339,6 @@ class TestStreamLifecycle:
         chunks = await _collect_chunks(events)
         assert chunks[-1] == "data: [DONE]\n\n"
 
-    @pytest.mark.asyncio
     async def test_finish_reason_stop_in_final(self):
         events = [
             ResponseCreatedEvent(
@@ -378,7 +365,6 @@ class TestStreamLifecycle:
         data = _parse_sse_line(chunks[-2])
         assert data["choices"][0]["finish_reason"] == "stop"
 
-    @pytest.mark.asyncio
     async def test_finish_reason_tool_calls_in_final(self):
         fc = ResponseFunctionToolCall(
             arguments="",
@@ -410,7 +396,6 @@ class TestStreamLifecycle:
         data = _parse_sse_line(chunks[-2])
         assert data["choices"][0]["finish_reason"] == "tool_calls"
 
-    @pytest.mark.asyncio
     async def test_finish_reason_length_when_incomplete(self):
         events = [
             ResponseCreatedEvent(
@@ -436,7 +421,6 @@ class TestStreamLifecycle:
         data = _parse_sse_line(chunks[-2])
         assert data["choices"][0]["finish_reason"] == "length"
 
-    @pytest.mark.asyncio
     async def test_usage_in_completed_event(self):
         events = [
             ResponseCreatedEvent(
@@ -461,7 +445,6 @@ class TestStreamLifecycle:
 
 
 class TestSSEFormat:
-    @pytest.mark.asyncio
     async def test_chunk_format(self):
         events = [
             ResponseCreatedEvent(
@@ -475,7 +458,6 @@ class TestSSEFormat:
             assert chunk.startswith("data: ")
             assert chunk.endswith("\n\n")
 
-    @pytest.mark.asyncio
     async def test_chunk_json_valid(self):
         events = [
             ResponseCreatedEvent(
@@ -499,7 +481,6 @@ class TestSSEFormat:
                 continue
             assert isinstance(parsed, dict)
 
-    @pytest.mark.asyncio
     async def test_chunk_object_type(self):
         events = [
             ResponseCreatedEvent(
@@ -512,7 +493,6 @@ class TestSSEFormat:
         data = _parse_sse_line(chunks[0])
         assert data["object"] == "chat.completion.chunk"
 
-    @pytest.mark.asyncio
     async def test_chunk_model_preserved(self):
         events = [
             ResponseCreatedEvent(
@@ -530,7 +510,6 @@ class TestSSEFormat:
 
 
 class TestEdgeCases:
-    @pytest.mark.asyncio
     async def test_unknown_event_ignored(self):
         """Events we don't handle should be silently skipped."""
 
@@ -554,7 +533,6 @@ class TestEdgeCases:
         # Should still get: role chunk, completed chunk, [DONE]
         assert len(chunks) == 3
 
-    @pytest.mark.asyncio
     async def test_empty_stream(self):
         """Stream with only completed event produces minimal output."""
         events = [
