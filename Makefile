@@ -25,9 +25,13 @@ check: ## Run ty checks
 format: ## Format code
 	uv run ruff format src/ tests/
 
+.PHONY: man
+man: ## Build man pages with Sphinx
+	uv run sphinx-build -b man docs/man docs/build/man
+
 .PHONY: clean
 clean: ## Remove build artifacts and caches
-	rm -rf build/ dist/ *.egg-info src/*.egg-info
+	rm -rf build/ dist/ *.egg-info src/*.egg-info docs/build
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type d -name .pytest_cache -exec rm -rf {} +
 	find . -type d -name .ruff_cache -exec rm -rf {} +

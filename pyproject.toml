@@ -35,8 +35,13 @@ where = ["src"]
 dev = [
     "ipdb",
     "ipython",
+    {include-group = "docs"},
     {include-group = "lint"},
     {include-group = "test"},
+]
+
+docs = [
+    "sphinx",
 ]
 
 lint = [
