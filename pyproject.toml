@@ -40,7 +40,7 @@ dev = [
 ]
 
 docs = [
-    "sphinx>=7.0,<8.0",
+    "sphinx>=9.1,<9.2",
 ]
 
 lint = [
