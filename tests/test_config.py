@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+from goose_proxy.config import _resolve_credential
 from goose_proxy.config import Auth
 from goose_proxy.config import Backend
 from goose_proxy.config import get_xdg_config_path
@@ -34,9 +35,31 @@ class TestLogging:
             Logging(level="TRACE")
 
 
+class TestResolveCredential:
+    def test_falls_back_when_env_unset(self):
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+            result = _resolve_credential("cert.pem", "/etc/pki/consumer/cert.pem")
+        assert result == Path("/etc/pki/consumer/cert.pem")
+
+    def test_falls_back_when_credential_file_missing(self, tmp_path):
+        with patch.dict(os.environ, {"CREDENTIALS_DIRECTORY": str(tmp_path)}):
+            result = _resolve_credential("cert.pem", "/etc/pki/consumer/cert.pem")
+        assert result == Path("/etc/pki/consumer/cert.pem")
+
+    def test_resolves_from_credentials_directory(self, tmp_path):
+        cred_file = tmp_path / "cert.pem"
+        cred_file.write_text("fake cert")
+        with patch.dict(os.environ, {"CREDENTIALS_DIRECTORY": str(tmp_path)}):
+            result = _resolve_credential("cert.pem", "/etc/pki/consumer/cert.pem")
+        assert result == cred_file
+
+
 class TestAuth:
     def test_default_cert_paths(self):
-        auth = Auth()
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+            auth = Auth()
         assert auth.cert_file == Path("/etc/pki/consumer/cert.pem")
         assert auth.key_file == Path("/etc/pki/consumer/key.pem")
 
@@ -44,6 +67,14 @@ class TestAuth:
         auth = Auth(cert_file="/tmp/cert.pem", key_file="/tmp/key.pem")
         assert auth.cert_file == Path("/tmp/cert.pem")
         assert auth.key_file == Path("/tmp/key.pem")
+
+    def test_defaults_resolve_from_credentials_directory(self, tmp_path):
+        (tmp_path / "cert.pem").write_text("fake cert")
+        (tmp_path / "key.pem").write_text("fake key")
+        with patch.dict(os.environ, {"CREDENTIALS_DIRECTORY": str(tmp_path)}):
+            auth = Auth()
+        assert auth.cert_file == tmp_path / "cert.pem"
+        assert auth.key_file == tmp_path / "key.pem"
 
 
 class TestBackend:

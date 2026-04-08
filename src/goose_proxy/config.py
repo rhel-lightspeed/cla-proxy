@@ -92,6 +92,22 @@ class Logging(BaseModel):
         return level
 
 
+def _resolve_credential(name: str, fallback: str) -> Path:
+    """Resolve a credential path from systemd's CREDENTIALS_DIRECTORY.
+
+    When running under systemd with LoadCredential=, credentials are placed in
+    a secure directory referenced by $CREDENTIALS_DIRECTORY. This function
+    checks there first and falls back to the traditional filesystem path.
+    """
+    creds_dir = os.getenv("CREDENTIALS_DIRECTORY")
+    if creds_dir:
+        cred_path = Path(creds_dir) / name
+        if cred_path.exists():
+            return cred_path
+
+    return Path(fallback)
+
+
 class Auth(BaseModel):
     """Internal schema that represents the authentication for goose-proxy.
 
@@ -100,8 +116,8 @@ class Auth(BaseModel):
         key_file (Path): The path to the RHSM key file
     """
 
-    cert_file: Path = Path("/etc/pki/consumer/cert.pem")
-    key_file: Path = Path("/etc/pki/consumer/key.pem")
+    cert_file: Path = Field(default_factory=lambda: _resolve_credential("cert.pem", "/etc/pki/consumer/cert.pem"))
+    key_file: Path = Field(default_factory=lambda: _resolve_credential("key.pem", "/etc/pki/consumer/key.pem"))
 
 
 class Backend(BaseModel):
