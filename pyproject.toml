@@ -16,7 +16,7 @@ dependencies = [
     # Exists in EPEL9/EPEL10
     "flask>=2.0.3",
     # WSGI server for production
-    "waitress>=1.4.4",
+    "gunicorn>=21.2",
 ]
 requires-python = ">=3.9"  # RHEL 9 and 10
 license-files = ["LICENSE"]

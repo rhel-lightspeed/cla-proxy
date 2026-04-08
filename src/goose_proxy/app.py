@@ -2,10 +2,10 @@ import logging
 import time
 
 import httpx
-import waitress
 
 from flask import Flask
 from flask import request as flask_request
+from gunicorn.app.base import BaseApplication
 
 from goose_proxy.config import get_settings
 from goose_proxy.exceptions import register_error_handlers
@@ -85,8 +85,9 @@ def _configure_logging(level: str) -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
         level=getattr(logging, level, logging.INFO),
     )
-    # Waitress has its own noisy logger -- keep it at WARNING.
-    logging.getLogger("waitress").setLevel(logging.WARNING)
+    # Gunicorn has its own access logger -- keep it at WARNING so our
+    # after_request hook is the single source of request logs.
+    logging.getLogger("gunicorn").setLevel(logging.WARNING)
 
 
 app = create_app()
@@ -103,14 +104,25 @@ def serve():
             debug=True,
         )
     else:
-        logger.info(
-            "Serving on http://%s:%s",
-            settings.server.host,
-            settings.server.port,
-        )
-        waitress.serve(
-            app,
-            host=settings.server.host,
-            port=settings.server.port,
-            threads=settings.server.workers * 4,
-        )
+
+        class StandaloneApplication(BaseApplication):
+            def __init__(self, application, options):
+                self.options = options or {}
+                self.application = application
+                super().__init__()
+
+            def load_config(self):
+                for key, value in self.options.items():
+                    if key in self.cfg.settings and value is not None:  # ty: ignore[unresolved-attribute]
+                        self.cfg.set(key.lower(), value)  # ty: ignore[unresolved-attribute]
+
+            def load(self):
+                return self.application
+
+        options = {
+            "bind": f"{settings.server.host}:{settings.server.port}",
+            "workers": settings.server.workers,
+            "accesslog": None,  # Disabled; our after_request hook handles it.
+        }
+        logger.debug(settings.model_dump_json())
+        StandaloneApplication(app, options).run()

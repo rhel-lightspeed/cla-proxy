@@ -137,7 +137,7 @@ class Backend(BaseModel):
 
 
 class Server(BaseModel):
-    """These are the settings that control how uvicon runs the application"""
+    """These are the settings that control how gunicorn runs the application."""
 
     host: str = "127.0.0.1"
     port: int = 8080
