@@ -224,13 +224,12 @@ class TestUserMessages:
 
 
 class TestSystemMessages:
-    def test_system_message_to_instructions(self, chat_request_with_system):
+    def test_system_message_dropped(self, chat_request_with_system):
         result = translate_request(chat_request_with_system)
-        assert result["instructions"] == "You are a helpful assistant."
-        # System message should not appear in input
+        assert "instructions" not in result
         assert all(item.get("role") != "system" for item in result["input"])
 
-    def test_multiple_system_messages_concatenated(self):
+    def test_multiple_system_messages_dropped(self):
         req = ChatCompletionRequest(
             model="m",
             messages=[
@@ -240,9 +239,10 @@ class TestSystemMessages:
             ],
         )
         result = translate_request(req)
-        assert result["instructions"] == "Be helpful.\n\nBe concise."
+        assert "instructions" not in result
+        assert len(result["input"]) == 1
 
-    def test_system_messages_interleaved(self):
+    def test_system_messages_interleaved_dropped(self):
         req = ChatCompletionRequest(
             model="m",
             messages=[
@@ -253,8 +253,7 @@ class TestSystemMessages:
             ],
         )
         result = translate_request(req)
-        assert result["instructions"] == "First.\n\nSecond."
-        # Only user messages in input
+        assert "instructions" not in result
         assert len(result["input"]) == 2
 
     def test_no_system_messages(self, simple_chat_request):

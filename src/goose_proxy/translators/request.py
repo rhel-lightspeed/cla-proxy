@@ -72,28 +72,22 @@ def _translate_user_content(
     return parts or [{"type": "input_text", "text": ""}]
 
 
-def _translate_messages(  # noqa: C901
+def _translate_messages(
     messages: list[ChatMessage],
-) -> tuple[t.Optional[str], t.List[dict[str, t.Any]]]:
+) -> t.List[dict[str, t.Any]]:
     """Convert Chat Completions messages to Responses API input items.
 
-    Returns (instructions, input_items) where instructions is the concatenated
-    system messages and input_items is the list of Responses API input items.
+    System messages are dropped because the backend already has its own
+    prompt instructions configured. Forwarding them as ``instructions``
+    would override the backend's prompt.
     """
-    system_parts: list[str] = []
     input_items: list[dict[str, t.Any]] = []
 
     for msg in messages:
         if msg.role == "system":
-            if msg.content:
-                if isinstance(msg.content, str):
-                    system_parts.append(msg.content)
-                else:
-                    for block in msg.content:
-                        if isinstance(block, TextContentPart):
-                            system_parts.append(block.text)
+            continue
 
-        elif msg.role == "user":
+        if msg.role == "user":
             content_parts = _translate_user_content(msg.content)
             input_items.append(
                 {
@@ -133,8 +127,7 @@ def _translate_messages(  # noqa: C901
                 }
             )
 
-    instructions = "\n\n".join(system_parts) if system_parts else None
-    return instructions, input_items
+    return input_items
 
 
 def translate_request(request: ChatCompletionRequest) -> dict[str, t.Any]:
@@ -142,7 +135,7 @@ def translate_request(request: ChatCompletionRequest) -> dict[str, t.Any]:
 
     This is the main entry point for request translation.
     """
-    instructions, input_items = _translate_messages(request.messages)
+    input_items = _translate_messages(request.messages)
 
     params: dict[str, t.Any] = {
         "model": "",
@@ -150,9 +143,6 @@ def translate_request(request: ChatCompletionRequest) -> dict[str, t.Any]:
         "stream": request.stream,
         "store": False,
     }
-
-    if instructions:
-        params["instructions"] = instructions
 
     if request.tools:
         tools_data = [tool.model_dump() for tool in request.tools]
