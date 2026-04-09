@@ -8,28 +8,11 @@ Goose sends `POST /v1/chat/completions`. The proxy translates this into `POST /r
 
 ### Messages
 
-All messages in the `messages` array are translated into the `input` and `instructions` fields of the Responses API request.
+All messages in the `messages` array are translated into the `input` field of the Responses API request.
 
 #### System Messages
 
-System messages are extracted from the conversation and concatenated (joined with `\n\n`) into the `instructions` parameter. They do not appear in `input`.
-
-```
-Chat Completions                          Responses API
-─────────────────                         ─────────────
-{"role": "system",                   ──>  instructions: "You are helpful."
- "content": "You are helpful."}
-```
-
-Multiple system messages (even interleaved with other messages) are all collected and joined:
-
-```
-messages: [                               instructions: "Be helpful.\n\nBe concise."
-  {"role": "system", "content": "Be helpful."},
-  {"role": "user", "content": "Hi"},
-  {"role": "system", "content": "Be concise."}
-]
-```
+System messages from Goose are **dropped** by the proxy. The backend (lightspeed-stack) has its own prompt instructions configured; forwarding Goose's system messages as the Responses API `instructions` parameter would override them.
 
 #### User Messages
 
@@ -101,7 +84,7 @@ Assistant text content and tool calls are translated separately. A single assist
 |------------------------|---------------------|--------------------------------------------|
 | `model`                | *(not sent)*        | Backend auto-selects the model             |
 | `messages`             | `input`             | Translated per message type (see above)    |
-| `messages` (system)    | `instructions`      | System messages concatenated               |
+| `messages` (system)    | *(dropped)*         | Backend has its own prompt instructions     |
 | `stream`               | `stream`            | Passed through                             |
 | `temperature`          | `temperature`       | Passed through (including `0`)             |
 | `max_tokens`           | `max_output_tokens` | Renamed                                    |
