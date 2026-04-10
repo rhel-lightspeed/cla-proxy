@@ -6,6 +6,7 @@ import sys
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -160,10 +161,10 @@ def get_settings() -> Settings:
     """
     config_path = Path(get_xdg_config_path(), *CONFIG_FILE_DEFINITION)
 
-    data = {}
+    data: dict[str, Any] = {}
     try:
-        data = config_path.read_text()
-        data = tomllib.loads(data)
+        raw = config_path.read_text()
+        data = tomllib.loads(raw)
     except FileNotFoundError:
         logger.warning("Config file not found at %s, using defaults.", config_path)
 
