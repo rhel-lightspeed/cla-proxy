@@ -105,7 +105,7 @@ def tool_call_response_fixture():
 class TestChatCompletions:
     def test_chat_completions_success(self, test_client, text_response_fixture):
         with patch(
-            "goose_proxy.routers.v1.create_response",
+            "goose_proxy.v1.create_response",
             new_callable=AsyncMock,
             return_value=text_response_fixture,
         ):
@@ -124,7 +124,7 @@ class TestChatCompletions:
 
     def test_chat_completions_with_tools(self, test_client, tool_call_response_fixture):
         with patch(
-            "goose_proxy.routers.v1.create_response",
+            "goose_proxy.v1.create_response",
             new_callable=AsyncMock,
             return_value=tool_call_response_fixture,
         ):
@@ -200,7 +200,7 @@ class TestChatCompletions:
             for e in events:
                 yield e
 
-        with patch("goose_proxy.routers.v1.stream_response", side_effect=mock_stream):
+        with patch("goose_proxy.v1.stream_response", side_effect=mock_stream):
             resp = test_client.post(
                 "/v1/chat/completions",
                 json={
@@ -228,7 +228,7 @@ class TestChatCompletions:
         error_response._request = httpx.Request("POST", "http://test")
 
         with patch(
-            "goose_proxy.routers.v1.create_response",
+            "goose_proxy.v1.create_response",
             new_callable=AsyncMock,
             side_effect=httpx.HTTPStatusError(
                 message="Not Found",

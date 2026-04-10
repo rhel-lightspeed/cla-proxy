@@ -22,7 +22,7 @@ from goose_proxy.translators import translate_stream
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/v1")
 
 
 async def create_response(client: httpx.AsyncClient, **params) -> Response:

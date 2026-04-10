@@ -3,14 +3,13 @@ import logging
 from contextlib import asynccontextmanager
 
 import httpx
-import uvicorn
 
 from fastapi import FastAPI
 
+from goose_proxy import v1
 from goose_proxy.config import get_settings
 from goose_proxy.exceptions import register_exception_handlers
 from goose_proxy.middleware import TimeoutMiddleware
-from goose_proxy.routers import v1
 
 
 logger = logging.getLogger(__name__)
@@ -60,17 +59,4 @@ async def health_check() -> None:
     return None
 
 
-app.include_router(v1.router, prefix="/v1")
-
-
-def serve():
-    """Entry point for running the application with uvicorn."""
-    settings = get_settings()
-    uvicorn.run(
-        "goose_proxy.app:app" if settings.server.reload else app,
-        host=settings.server.host,
-        port=settings.server.port,
-        reload=settings.server.reload,
-        workers=settings.server.workers,
-        log_level=settings.logging.level.lower(),
-    )
+app.include_router(v1.router)
