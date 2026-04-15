@@ -13,9 +13,6 @@ ExecStart=/usr/bin/goose-proxy
 ProtectHome=true
 ProtectSystem=strict
 
-# RHSM certificates in /etc/pki/consumer are readable because the service
-# runs as root.  ProtectSystem=strict ensures the filesystem stays read-only.
-
 # Private /tmp so the service can't snoop on other processes
 PrivateTmp=true
 
