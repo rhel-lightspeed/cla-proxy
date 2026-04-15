@@ -164,7 +164,7 @@ def get_settings() -> Settings:
     try:
         config = config_path.read_text()
         data = tomllib.loads(config)
-    except FileNotFoundError:
-        logger.warning("Config file not found at %s, using defaults.", config_path)
+    except (FileNotFoundError, PermissionError):
+        logger.warning("Config file not found or not readable at %s, using defaults.", config_path)
 
     return Settings(**data)

@@ -10,9 +10,11 @@ import pytest
 from goose_proxy.config import _resolve_credential
 from goose_proxy.config import Auth
 from goose_proxy.config import Backend
+from goose_proxy.config import get_settings
 from goose_proxy.config import get_xdg_config_path
 from goose_proxy.config import Logging
 from goose_proxy.config import Server
+from goose_proxy.config import Settings
 
 
 class TestLogging:
@@ -106,6 +108,51 @@ class TestServer:
         assert s.port == 9090
         assert s.reload is True
         assert s.workers == 4
+
+
+class TestGetSettings:
+    def setup_method(self):
+        get_settings.cache_clear()
+
+    def teardown_method(self):
+        get_settings.cache_clear()
+
+    def test_returns_defaults_when_config_not_found(self, tmp_path):
+        with patch.dict(os.environ, {"XDG_CONFIG_DIRS": str(tmp_path)}):
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+            settings = get_settings()
+
+        assert isinstance(settings, Settings)
+        assert settings.backend.timeout == 30
+        assert settings.logging.level == "INFO"
+
+    def test_returns_defaults_when_permission_denied(self, tmp_path):
+        config_dir = tmp_path / "goose-proxy"
+        config_dir.mkdir()
+        config_file = config_dir / "config.toml"
+        config_file.write_text("[backend]\ntimeout = 99\n")
+        config_file.chmod(0o000)
+
+        with patch.dict(os.environ, {"XDG_CONFIG_DIRS": str(tmp_path)}):
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+            settings = get_settings()
+
+        # Should get defaults (timeout=30), NOT the value in the unreadable file (99)
+        assert settings.backend.timeout == 30
+        assert settings.logging.level == "INFO"
+
+    def test_reads_valid_config_file(self, tmp_path):
+        config_dir = tmp_path / "goose-proxy"
+        config_dir.mkdir()
+        config_file = config_dir / "config.toml"
+        config_file.write_text('[backend]\ntimeout = 99\n\n[logging]\nlevel = "DEBUG"\n')
+
+        with patch.dict(os.environ, {"XDG_CONFIG_DIRS": str(tmp_path)}):
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+            settings = get_settings()
+
+        assert settings.backend.timeout == 99
+        assert settings.logging.level == "DEBUG"
 
 
 class TestGetXdgConfigPath:
