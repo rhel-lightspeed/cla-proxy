@@ -103,7 +103,10 @@ sphinx-build -b man docs/man docs/build/man
 %post
 %systemd_post %{name}.socket
 # Start the socket immediately so the proxy is reachable without a reboot.
-systemctl start %{name}.socket 2>/dev/null || :
+if [ $1 -eq 1 ]; then
+    # First install: start the socket so the proxy is reachable immediately.
+    systemctl start %{name}.socket 2>/dev/null || :
+fi
 
 %preun
 %systemd_preun %{name}.socket %{name}.service

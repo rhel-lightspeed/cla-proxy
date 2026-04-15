@@ -2,6 +2,7 @@
 Description=Goose Proxy Daemon Service
 Documentation=man:goose-proxy(7)
 Requires=goose-proxy.socket
+After=goose-proxy.socket
 
 [Service]
 Type=simple
