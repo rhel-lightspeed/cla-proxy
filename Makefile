@@ -39,6 +39,10 @@ clean: ## Remove build artifacts and caches
 	find . -type d -name .pytest_cache -exec rm -rf {} +
 	find . -type d -name .ruff_cache -exec rm -rf {} +
 
+.PHONY: clean-vendor
+clean-vendor: ## Remove all vendored packages, keeping only __init__.py
+	find src/goose_proxy/_vendor -mindepth 1 -maxdepth 1 -not -name '__init__.py' -exec rm -rf {} +
+
 .PHONY: request
 request: ## Make a test request to the v1 API
 	@curl -sX POST localhost:7080/v1/chat/completions \
