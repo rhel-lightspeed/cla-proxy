@@ -4,7 +4,6 @@ import os
 import sys
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -149,15 +148,16 @@ class TestGetSettings:
 
 
 class TestGetXdgConfigPath:
-    def test_returns_etc_xdg_when_env_unset(self):
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove XDG_CONFIG_DIRS if present
-            os.environ.pop("XDG_CONFIG_DIRS", None)
-            result = get_xdg_config_path()
+    def test_returns_etc_xdg_when_env_unset(self, monkeypatch):
+        monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)
+
+        result = get_xdg_config_path()
+
         assert result == Path("/etc/xdg")
 
     def test_returns_single_path_directly(self, tmp_path, monkeypatch):
         monkeypatch.setenv("XDG_CONFIG_DIRS", str(tmp_path))
+
         result = get_xdg_config_path()
 
         assert result == tmp_path
@@ -168,6 +168,7 @@ class TestGetXdgConfigPath:
         nonexistent = tmp_path / "nonexistent"
         paths = f"{nonexistent}{os.pathsep}{existing}"
         monkeypatch.setenv("XDG_CONFIG_DIRS", paths)
+
         result = get_xdg_config_path()
 
         assert result == existing
@@ -175,12 +176,14 @@ class TestGetXdgConfigPath:
     def test_returns_etc_xdg_when_no_paths_exist(self, tmp_path, monkeypatch):
         paths = f"{tmp_path}/a{os.pathsep}{tmp_path}/b"
         monkeypatch.setenv("XDG_CONFIG_DIRS", paths)
+
         result = get_xdg_config_path()
 
         assert result == Path("/etc/xdg")
 
     def test_empty_env_var_returns_default(self, monkeypatch):
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
+
         result = get_xdg_config_path()
 
         assert result == Path("/etc/xdg")
