@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
+from pydantic_core import ValidationError
+
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -127,15 +129,22 @@ class TestGetSettings:
         assert settings.backend.timeout == 99
         assert settings.logging.level == "DEBUG"
 
-    def test_error_on_invalid_config_file(self, monkeypatch, tmp_path):
+    @pytest.mark.parametrize(
+        "value, expected_error",
+        (
+            ('[backend]\ntimeout = 99\ntimeout = 30\n\n[logging]\nlevel = "DEBUG"\n', tomllib.TOMLDecodeError),
+            ("[backend]\nendpoint = 99\n", ValidationError),
+        ),
+    )
+    def test_error_on_invalid_config_file(self, value, expected_error, monkeypatch, tmp_path):
         config_dir = tmp_path / "goose-proxy"
         config_dir.mkdir()
         config_file = config_dir / "config.toml"
-        config_file.write_text('[backend]\ntimeout = 99\ntimeout = 30\n\n[logging]\nlevel = "DEBUG"\n')
+        config_file.write_text(value)
 
         monkeypatch.setenv("XDG_CONFIG_DIRS", str(tmp_path))
 
-        with pytest.raises(tomllib.TOMLDecodeError):
+        with pytest.raises(expected_error):
             get_settings()
 
 
