@@ -9,7 +9,6 @@ readme = "README.md"
 dependencies = [
     # tomli is only required below 3.11 as it is native after that version.
     'tomli; python_version<"3.11"',
-    "httpx>=0.28.1",
     "pydantic>=2.12.4",
     "fastapi>=0.121.2",
     "uvicorn>=0.38.0",
