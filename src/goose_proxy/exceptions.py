@@ -8,7 +8,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 
 def _openai_error_response(status_code: int, message: str, error_type: str) -> JSONResponse:

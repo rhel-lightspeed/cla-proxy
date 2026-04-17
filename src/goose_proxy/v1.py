@@ -24,7 +24,7 @@ from goose_proxy.translators import translate_response
 from goose_proxy.translators import translate_stream
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 router = APIRouter(prefix="/v1")
 
