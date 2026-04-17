@@ -1,13 +1,21 @@
 """CLI entrypoint for running goose-proxy with uvicorn."""
 
+import sys
+
 import uvicorn
 
+from pydantic import ValidationError
+
 from goose_proxy.config import get_settings
+from goose_proxy.config import tomllib
 
 
 def serve():
     """Entry point for running the application with uvicorn."""
-    settings = get_settings()
+    try:
+        settings = get_settings()
+    except (tomllib.TOMLDecodeError, ValidationError) as err:
+        sys.exit(f"Problem reading config file: {err}")
 
     # Use import string for reload mode so uvicorn can re-import the app.
     from goose_proxy.app import app
