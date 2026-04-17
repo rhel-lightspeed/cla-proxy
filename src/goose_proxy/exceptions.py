@@ -38,6 +38,16 @@ def _http_exception_handler(_: Request, exc: Exception) -> JSONResponse:
 def _http_error_handler(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, urllib.error.HTTPError)
     body = exc.read().decode()
+
+    logger.debug(
+        "Backend HTTP error\n\tURL: %s\n\tResponse status: %s %s\n\tResponse headers: %s\n\tResponse body: %s",
+        exc.url,
+        exc.code,
+        exc.reason,
+        dict(exc.headers) if exc.headers else {},
+        body,
+    )
+
     try:
         data = json.loads(body)
         message = data.get("error", {}).get("message", str(exc))
@@ -53,6 +63,8 @@ def _http_error_handler(_: Request, exc: Exception) -> JSONResponse:
 
 def _url_error_handler(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, urllib.error.URLError)
+
+    logger.debug("Backend connection error: %s", exc.reason)
 
     return _openai_error_response(
         status_code=502,
