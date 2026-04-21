@@ -67,10 +67,11 @@ class BackendClient:
             return self.opener.open(req, timeout=self.timeout)
         except urllib.error.HTTPError:
             logger.debug(
-                "Request that caused backend error\n\t\tRequest: %s %s\n\t\tRequest headers: %s",
+                "Request that caused backend error\n\t\tRequest: %s %s\n\t\tRequest headers: %s\n\t\tRequest body: %s",
                 req.get_method(),
                 req.full_url,
                 dict(req.headers),
+                req.data,
             )
             raise
 
