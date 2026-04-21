@@ -2,6 +2,8 @@
 
 import typing as t
 
+from goose_proxy.config import get_settings
+from goose_proxy.config import Settings
 from goose_proxy.models.chat import ChatCompletionRequest
 from goose_proxy.models.chat import ChatMessage
 from goose_proxy.models.chat import ContentPart
@@ -69,11 +71,13 @@ def _translate_user_content(
             parts.append({"type": "input_text", "text": block.text})
         elif isinstance(block, ImageUrlContentPart):
             parts.append({"type": "input_image", "image_url": block.image_url.url})
+
     return parts or [{"type": "input_text", "text": ""}]
 
 
 def _translate_messages(
     messages: list[ChatMessage],
+    settings: Settings = get_settings(),
 ) -> t.List[dict[str, t.Any]]:
     """Convert Chat Completions messages to Responses API input items.
 
@@ -97,35 +101,36 @@ def _translate_messages(
                 }
             )
 
-        elif msg.role == "assistant":
-            if msg.content:
-                input_items.append(
-                    {
-                        "type": "message",
-                        "role": "assistant",
-                        "content": [{"type": "output_text", "text": msg.content}],
-                    }
-                )
-
-            if msg.tool_calls:
-                for tc in msg.tool_calls:
+        if not settings.backend.remove_context:
+            if msg.role == "assistant":
+                if msg.content:
                     input_items.append(
                         {
-                            "type": "function_call",
-                            "call_id": tc.id,
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
+                            "type": "message",
+                            "role": "assistant",
+                            "content": [{"type": "output_text", "text": msg.content}],
                         }
                     )
 
-        elif msg.role == "tool":
-            input_items.append(
-                {
-                    "type": "function_call_output",
-                    "call_id": msg.tool_call_id or "",
-                    "output": msg.content or "",
-                }
-            )
+                if msg.tool_calls:
+                    for tc in msg.tool_calls:
+                        input_items.append(
+                            {
+                                "type": "function_call",
+                                "call_id": tc.id,
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            }
+                        )
+
+            elif msg.role == "tool":
+                input_items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": msg.tool_call_id or "",
+                        "output": msg.content or "",
+                    }
+                )
 
     return input_items
 

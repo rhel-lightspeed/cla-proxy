@@ -118,6 +118,7 @@ class Backend(BaseModel):
     auth: Auth = Field(default_factory=Auth)
     proxy: str = ""
     timeout: int = 30
+    remove_context: bool = True
 
 
 class Server(BaseModel):
