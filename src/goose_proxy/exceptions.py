@@ -1,6 +1,5 @@
 import json
 import logging
-import ssl
 import urllib.error
 
 from fastapi import FastAPI
@@ -10,6 +9,14 @@ from fastapi.responses import JSONResponse
 
 
 logger = logging.getLogger("uvicorn.error")
+
+
+class GooseProxyError(Exception):
+    """Base exception for all goose-proxy errors."""
+
+
+class CertificateInitializationError(GooseProxyError):
+    """Raised when backend certificate initialization fails."""
 
 
 def _openai_error_response(status_code: int, message: str, error_type: str) -> JSONResponse:
@@ -75,14 +82,14 @@ def _url_error_handler(_: Request, exc: Exception) -> JSONResponse:
 
 
 def _cert_error_handler(_: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, (FileNotFoundError, ssl.SSLError))
+    assert isinstance(exc, CertificateInitializationError)
 
-    logger.debug("Certificate error: %s", exc)
+    logger.debug("Certificate error: %s", exc.__cause__)
 
     return _openai_error_response(
         status_code=502,
         message=(
-            f"System is not registered. Failed to load certificate chain: {exc}. "
+            "System is not registered. Failed to initialize certificate authentication. "
             "Register this system with 'subscription-manager register' and try again."
         ),
         error_type="server_error",
@@ -93,7 +100,4 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(HTTPException, _http_exception_handler)
     app.add_exception_handler(urllib.error.HTTPError, _http_error_handler)
     app.add_exception_handler(urllib.error.URLError, _url_error_handler)
-    # The only file reads at request time are the RHSM cert/key files, so a
-    # FileNotFoundError here means the system is not registered.
-    app.add_exception_handler(FileNotFoundError, _cert_error_handler)
-    app.add_exception_handler(ssl.SSLError, _cert_error_handler)
+    app.add_exception_handler(CertificateInitializationError, _cert_error_handler)

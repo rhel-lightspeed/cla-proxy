@@ -1,6 +1,5 @@
 import io
 import json
-import ssl
 import urllib.error
 
 from unittest.mock import MagicMock
@@ -13,6 +12,7 @@ from goose_proxy.exceptions import _cert_error_handler
 from goose_proxy.exceptions import _http_error_handler
 from goose_proxy.exceptions import _http_exception_handler
 from goose_proxy.exceptions import _url_error_handler
+from goose_proxy.exceptions import CertificateInitializationError
 
 
 def _dummy_request():
@@ -142,8 +142,10 @@ class TestUrlErrorHandler:
 
 
 class TestCertErrorHandler:
-    def test_file_not_found_returns_502(self):
-        exc = FileNotFoundError("[Errno 2] No such file or directory: '/etc/pki/consumer/cert.pem'")
+    def test_cert_init_error_returns_502(self):
+        cause = FileNotFoundError("[Errno 2] No such file or directory: '/etc/pki/consumer/cert.pem'")
+        exc = CertificateInitializationError()
+        exc.__cause__ = cause
 
         resp = _cert_error_handler(_dummy_request(), exc)
         body = json.loads(resp.body)
@@ -152,13 +154,5 @@ class TestCertErrorHandler:
         assert body["error"]["type"] == "server_error"
         assert "System is not registered" in body["error"]["message"]
         assert "subscription-manager register" in body["error"]["message"]
-
-    def test_ssl_error_returns_502(self):
-        exc = ssl.SSLError(1, "[SSL] PEM lib (_ssl.c:4136)")
-
-        resp = _cert_error_handler(_dummy_request(), exc)
-        body = json.loads(resp.body)
-
-        assert resp.status_code == 502
-        assert body["error"]["type"] == "server_error"
-        assert "System is not registered" in body["error"]["message"]
+        # Raw exception details must not leak to the client
+        assert "/etc/pki" not in body["error"]["message"]
