@@ -1,5 +1,6 @@
 import json
 import logging
+import ssl
 import urllib.error
 
 from fastapi import FastAPI
@@ -73,7 +74,24 @@ def _url_error_handler(_: Request, exc: Exception) -> JSONResponse:
     )
 
 
+def _cert_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, (FileNotFoundError, ssl.SSLError))
+
+    logger.debug("Certificate error: %s", exc)
+
+    return _openai_error_response(
+        status_code=502,
+        message=(
+            f"System is not registered. Failed to load certificate chain: {exc}. "
+            "Register this system with 'subscription-manager register' and try again."
+        ),
+        error_type="server_error",
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(HTTPException, _http_exception_handler)
     app.add_exception_handler(urllib.error.HTTPError, _http_error_handler)
     app.add_exception_handler(urllib.error.URLError, _url_error_handler)
+    app.add_exception_handler(FileNotFoundError, _cert_error_handler)
+    app.add_exception_handler(ssl.SSLError, _cert_error_handler)
