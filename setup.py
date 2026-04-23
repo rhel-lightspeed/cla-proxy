@@ -1,6 +1,7 @@
 # RHEL 9 ships setuptools < 61 which cannot read the [project] table from
 # pyproject.toml (PEP 621). Read pyproject metadata here and pass it to
 # setup() so older setuptools can still build the package correctly.
+import pathlib
 import sys
 
 from setuptools import find_packages
@@ -23,14 +24,18 @@ for script_name, script_path in pyproject_settings["project"]["scripts"].items()
     entry_points["console_scripts"].append(f"{script_name} = {script_path}")
 
 long_description = None
-with open(
-    pyproject_settings["project"]["readme"], mode="r", encoding="utf-8"
-) as handler:
+with open(pyproject_settings["project"]["readme"], mode="r", encoding="utf-8") as handler:
     long_description = handler.read()
+
+version_file = pathlib.Path(__file__).parent / "src" / "goose_proxy" / "__init__.py"
+version = version_file.read_text()
+for line in sorted(version.splitlines(), reverse=True):
+    if "__version__ " in line:
+        version = line.partition("=")[2].strip().replace('"', "")
 
 setup(
     name=pyproject_settings["project"]["name"],
-    version=pyproject_settings["project"]["version"],
+    version=version,
     author=pyproject_settings["project"]["authors"][0]["name"],
     author_email=pyproject_settings["project"]["authors"][0]["email"],
     description=pyproject_settings["project"]["description"],
