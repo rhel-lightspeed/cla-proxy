@@ -3,6 +3,16 @@
 %global debug_package %{nil}
 %define python_package_src goose_proxy
 
+# Set selinux_ver depending on RHEL version
+%define selinux_ver 38.1.65
+
+%if 0%{?rhel} && 0%{?rhel} > 10
+%define selinux_ver 42.1.7
+%endif
+
+%define selinuxtype targeted
+%define modulename goose_proxy
+
 Name:           goose-proxy
 Version:        0.1.0
 Release:        1%{?dist}
@@ -41,6 +51,14 @@ Provides:       bundled(fastapi)
 Provides:       bundled(uvicorn)
 Provides:       bundled(pydantic)
 
+# SELinux policy build dependencies
+BuildRequires:  selinux-policy-devel
+BuildRequires:  bzip2
+
+# Add selinux subpackage as dependency
+Requires:       %{name}-selinux
+
+
 %global _description %{expand:
 A lightweight API translation proxy that bridges Goose with backend servers
 that speak the Responses API from OpenAI, such as Lightspeed Stack.}
@@ -50,7 +68,6 @@ that speak the Responses API from OpenAI, such as Lightspeed Stack.}
 %{?python_disable_dependency_generator}
 
 %description %_description
-
 
 %prep
 %autosetup -p1
@@ -80,6 +97,9 @@ tar xzf %{SOURCE1}
 # Build the manpages
 sphinx-build -b man docs/man docs/build/man
 
+# Build SELinux policy module
+%{__make} -C data/release/selinux %{modulename}.pp.bz2
+
 %install
 %py3_install_wheel %{python_package_src}-%{version}-py3-none-any.whl
 
@@ -105,6 +125,13 @@ sphinx-build -b man docs/man docs/build/man
 %{__install} -Dpm 0644 data/release/goose/config.yaml  %{buildroot}%{_datadir}/goose-redhat/config.yaml
 %{__install} -Dpm 0644 data/release/goose/rhel_cla.json %{buildroot}%{_datadir}/goose-redhat/rhel_cla.json
 
+# SELinux policy module
+%{__install} -d %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}
+%{__install} -m 644 data/release/selinux/%{modulename}.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp.bz2
+
+%{__install} -d %{buildroot}%{_datadir}/selinux/devel/include/contrib
+%{__install} -m 644 data/release/selinux/%{modulename}.if %{buildroot}%{_datadir}/selinux/devel/include/contrib/
+
 %post
 %systemd_post %{name}.socket
 # Start the socket immediately so the proxy is reachable without a reboot.
@@ -118,7 +145,6 @@ fi
 
 %postun
 %systemd_postun_with_restart %{name}.socket %{name}.service
-
 
 %files
 %license LICENSE
@@ -144,6 +170,7 @@ fi
 %config(noreplace) %attr(0600, root, root) %{_sysconfdir}/xdg/%{name}/config.toml
 
 # ---------------- Red Hat package
+
 %package    -n goose-redhat
 Summary:    %{summary}
 
@@ -160,6 +187,47 @@ the communication with RHEL Lightspeed services.
 %{_sysconfdir}/profile.d/goose-init.sh
 %{_datadir}/goose-redhat/config.yaml
 %{_datadir}/goose-redhat/rhel_cla.json
+
+# ---------------- SELinux package
+
+%package        selinux
+Summary:        SELinux policy module for goose-proxy
+BuildArch:      noarch
+
+Requires:       selinux-policy >= %{selinux_ver}
+Requires:       selinux-policy-%{selinuxtype}
+Requires(post): selinux-policy-%{selinuxtype}
+Requires(post): selinux-policy-base >= %{selinux_ver}
+Requires(post): policycoreutils-python-utils
+Requires(postun): selinux-policy-base >= %{selinux_ver}
+Requires(postun): policycoreutils-python-utils
+
+%description    selinux
+This package installs and sets up the SELinux policy security module for %{modulename}.
+
+%pre            selinux
+%selinux_relabel_pre -s %{selinuxtype}
+
+%post           selinux
+%selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp.bz2
+# Port 7080 may already be assigned to http_cache_port_t; use -m as fallback.
+semanage port -a -t goose_proxy_port_t -p tcp 7080 2>/dev/null || \
+    semanage port -m -t goose_proxy_port_t -p tcp 7080 2>/dev/null || :
+
+%postun         selinux
+if [ $1 -eq 0 ]; then
+    semanage port -d -t goose_proxy_port_t -p tcp 7080 2>/dev/null || :
+    %selinux_modules_uninstall -s %{selinuxtype} %{modulename}
+fi
+
+%posttrans      selinux
+%selinux_relabel_post -s %{selinuxtype}
+
+%files          selinux
+%attr(0644,root,root) %{_datadir}/selinux/packages/%{selinuxtype}/%{modulename}.pp.bz2
+%{_datadir}/selinux/devel/include/contrib/%{modulename}.if
+%ghost %verify(not md5 size mode mtime) %{_sharedstatedir}/selinux/%{selinuxtype}/active/modules/200/%{modulename}
+
 
 %changelog
 %autochangelog
