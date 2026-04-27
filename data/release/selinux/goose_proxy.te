@@ -1,4 +1,4 @@
-policy_module(goose_proxy, 0.1.0)
+policy_module(goose_proxy, 1.0.0)
 
 ########################################
 #
