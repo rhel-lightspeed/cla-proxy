@@ -2,6 +2,8 @@ import logging
 
 from fastapi import FastAPI
 
+import goose_proxy
+
 from goose_proxy import v1
 from goose_proxy.exceptions import register_exception_handlers
 from goose_proxy.middleware import TimeoutMiddleware
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="goose-proxy",
     description="A proxy that translates OpenAI Chat Completions API to Responses API",
-    version="0.1.0",
+    version=goose_proxy.__version__,
     contact={"name": "RHEL Lightspeed Team", "email": "rhel-lightspeed-sst@redhat.com"},
     license_info={
         "name": "Apache 2.0",
