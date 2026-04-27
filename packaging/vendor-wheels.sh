@@ -29,31 +29,39 @@ do
     # requires click>=8.2.1 only on Python 3.10+, but click 8.2.x dropped
     # Python 3.9 support).
     uv pip compile pyproject.toml \
-        --python-version ${python_version} \
+        --python-version "${python_version}" \
         -c packaging/constraints.txt \
         --no-header --no-annotate \
         -o "requirements-${python_version/./}.txt"
 
     for arch in "${ARCHES[@]}"
     do
+        success=false
         for attempt in 1 2 3
         do
             # Download binary wheels for each Python version and architecture.
             # --no-deps is required because pip evaluates environment markers
             # using the host Python, not the target version set by
             # --python-version, causing false dependency conflicts.
-            pip3 download --no-deps --dest vendor_wheels --only-binary=:all: \
-                --python-version ${python_version} --abi cp${python_version/./} --implementation cp \
+            if pip3 download --no-deps --dest vendor_wheels --only-binary=:all: \
+                --python-version "${python_version}" --abi "cp${python_version/./}" --implementation cp \
                 --platform "manylinux_2_17_${arch}" --platform "manylinux_2_28_${arch}" \
-                -r "requirements-${python_version/./}.txt" && break
+                -r "requirements-${python_version/./}.txt"; then
+                success=true
+                break
+            fi
             echo "Attempt ${attempt} for ${arch} failed. Retrying..."
             sleep 5
         done
+        if [[ "$success" != true ]]; then
+            echo "Failed to download wheels for Python ${python_version} on ${arch} after 3 attempts." >&2
+            exit 1
+        fi
     done
 
     # Bundle requirements files so the spec can select the right one at build
     # time based on the target Python version.
-    mv requirements-${python_version/./}.txt vendor_wheels
+    mv "requirements-${python_version/./}.txt" vendor_wheels
 done
 
 tar czf "$OUTPUT" vendor_wheels/
