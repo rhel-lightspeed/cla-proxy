@@ -57,7 +57,7 @@ BuildRequires:  selinux-policy-devel
 BuildRequires:  bzip2
 
 # Add selinux subpackage as dependency
-Requires:       %{name}-selinux
+Requires:       %{name}-selinux = %{version}-%{release}
 
 
 %global _description %{expand:
