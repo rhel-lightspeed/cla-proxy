@@ -142,6 +142,7 @@ def translate_request(request: ChatCompletionRequest) -> dict[str, t.Any]:
         "input": input_items,
         "stream": request.stream,
         "store": False,
+        "generate_topic_summary": False,
     }
 
     if request.tools:
