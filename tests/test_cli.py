@@ -10,6 +10,12 @@ from goose_proxy.cli import _is_socket_activated
 from goose_proxy.cli import SD_LISTEN_FDS_START
 
 
+@pytest.fixture
+def mock_uvicorn():
+    with patch("goose_proxy.cli.uvicorn", autospec=True) as mock_uvicorn:
+        yield mock_uvicorn
+
+
 class TestIsSocketActivated:
     def test_returns_false_when_env_unset(self, monkeypatch):
         monkeypatch.delenv("LISTEN_FDS", raising=False)
@@ -63,7 +69,6 @@ class TestServe:
         yield
         get_settings.cache_clear()
 
-    @patch("goose_proxy.cli.uvicorn")
     def test_standalone_passes_host_and_port(self, mock_uvicorn, tmp_path, monkeypatch):
         config = tmp_path / "goose-proxy" / "config.toml"
         config.parent.mkdir()
@@ -82,7 +87,6 @@ class TestServe:
         assert "port" in kwargs
         assert "fd" not in kwargs
 
-    @patch("goose_proxy.cli.uvicorn")
     def test_socket_activated_passes_fd(self, mock_uvicorn, tmp_path, monkeypatch):
         config = tmp_path / "goose-proxy" / "config.toml"
         config.parent.mkdir()
@@ -102,7 +106,6 @@ class TestServe:
         assert "port" not in kwargs
         assert "reload" not in kwargs
 
-    @patch("goose_proxy.cli.uvicorn")
     def test_socket_activated_warns_on_reload(self, mock_uvicorn, tmp_path, caplog, monkeypatch):
         config = tmp_path / "goose-proxy" / "config.toml"
         config.parent.mkdir()
