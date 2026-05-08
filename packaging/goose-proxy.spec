@@ -171,19 +171,20 @@ fi
 
 # ---------------- Red Hat package
 
-%package    -n goose-redhat
-Summary:    %{summary}
+%package        -n goose-redhat
+Summary:        %{summary}
+BuildArch:      noarch
 
-Requires:   goose
-Requires:   %{name} = %{version}-%{release}
+Requires:       goose
+Requires:       %{name} = %{version}-%{release}
 
-%description -n goose-redhat
+%description    -n goose-redhat
 
 This package contains Red Hat specific configurations for %{name}, which enable
 the communication with RHEL Lightspeed services.
 
 
-%files       -n goose-redhat
+%files          -n goose-redhat
 %{_sysconfdir}/profile.d/goose-init.sh
 %{_datadir}/goose-redhat/config.yaml
 %{_datadir}/goose-redhat/rhel_cla.json
